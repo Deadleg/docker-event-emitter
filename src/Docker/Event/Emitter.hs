@@ -1,37 +1,38 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Docker.Event.Emitter (
-    App(..),
-    ListenerType(..),
+    I.App(..),
+    I.ListenerType(..),
     newEvent,
-    dispatchToRedis,
-    dispatchToRest,
-    getEvents
+    publishToRedis,
+    publishToRest,
+    getEvents,
+    I.unixSocketManager
 ) where
 
-import Docker.Event.Emitter.Internal
 
-import Conduit hiding (connect)
+import Data.Conduit hiding (connect)
+import Control.Monad (mapM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.List.Split (splitOn)
 import Database.Redis hiding (info, get, String)
-import Network.HTTP.Simple hiding (getResponseBody)
+import Network.Socket.Internal (PortNumber)
+import Network.HTTP.Simple
 
+import qualified Docker.Event.Emitter.Internal as I
 import qualified Data.ByteString as S
-import qualified Data.ByteString.Char8 as C
-import qualified Network.Socket.Internal as ST
 
 getEvents :: Source IO S.ByteString
 getEvents = yield "GET /events HTTP/1.1\r\n\r\n"
 
-dispatchToRedis :: Endpoint -> S.ByteString -> Sink S.ByteString IO ()
-dispatchToRedis endpoint json = do
+publishToRedis :: I.Endpoint -> S.ByteString -> Sink S.ByteString IO ()
+publishToRedis endpoint json = do
     conn <- liftIO $ connect defaultConnectInfo { connectHost = host, connectPort = port}
     liftIO $ runRedis conn $ do
         publish "container:event" json
         return ()
     where
-        toPortNumber :: String -> ST.PortNumber
+        toPortNumber :: String -> PortNumber
         toPortNumber s = (fromInteger . read) s
 
         split = splitOn ":" endpoint
@@ -39,13 +40,11 @@ dispatchToRedis endpoint json = do
             [h, p] -> (h, PortNumber (toPortNumber p))
             [h]    -> (h, PortNumber 6379)
 
-dispatchToRest :: Endpoint -> S.ByteString -> Sink S.ByteString IO ()
-dispatchToRest endpoint json = do
+publishToRest :: I.Endpoint -> S.ByteString -> Sink S.ByteString IO ()
+publishToRest endpoint json = do
     request <- parseRequest ("POST " ++ endpoint)
     httpLBS request -- should do something with the response?
     return ()
 
-newEvent :: (S.ByteString -> Sink S.ByteString IO ()) -> S.ByteString -> Sink S.ByteString IO ()
-newEvent dispatch event
-    | "HTTP" `C.isPrefixOf` event = return ()
-    | otherwise                   = splitEvent dispatch event
+newEvent :: (S.ByteString -> Sink S.ByteString IO ()) -> Sink S.ByteString IO ()
+newEvent publisher = await >>= mapM_ (I.publishEvent publisher)

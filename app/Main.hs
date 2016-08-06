@@ -1,11 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import Docker.Event.Emitter
 
-import Conduit hiding (connect)
-import Data.Conduit hiding (connect)
-import Data.Conduit.Network.Unix
+import Data.Conduit (($$))
+import Network.HTTP.Client
+import Network.HTTP.Client.Conduit (bodyReaderSource)
+import Network.HTTP.Simple
 import Options.Applicative hiding (choice)
 
 appParser :: Parser App
@@ -22,22 +22,24 @@ appParser = App <$> (option auto
                       <> help "Redis: hostname:port | web: full url"))
 
 -- | Parses the options to extract the correct 'dispatcher', and then connects to the docker daemon.
--- The 'dispatcher' is just a name for the type of publisher we are using (e.g. Redis/Web).
--- Could probably change the name to publisher.
 main :: IO ()
 main = do
     app <- execParser opts
-    let dispatch = dispatcher app
-    runUnixClient (clientSettings "/var/run/docker.sock") $ \server -> do
-        getEvents $$ appSink server
-        appSource server $$ awaitForever (newEvent dispatch)
-    return ()
+    let publisher = getPublisher app
+    manager <- unixSocketManager
+    request <- parseRequest "http://localhost/events"
+    let request' = setRequestManager manager request
+    withResponse request manager $ \response -> do
+        let loop = do
+                bodyReaderSource (responseBody response) $$ newEvent publisher
+                loop
+        loop
     where
         opts = info (helper <*> appParser)
            ( fullDesc
           <> header "Docker Event Emitter - relay docker events to somewhere else"
           <> progDesc "Emit docker events to a subscriber such as Redis or a RESTful endpoint.")
 
-        dispatcher app = case listener app of
-            Redis -> dispatchToRedis $ endpoint app
-            Web   -> dispatchToRest $ endpoint app
+        getPublisher app = case listener app of
+            Redis -> publishToRedis $ endpoint app
+            Web   -> publishToRest $ endpoint app

@@ -2,8 +2,7 @@
 
 module Docker.Event.Emitter.Internal.Tests (
     tests
-)
-where
+) where
 
 import Docker.Event.Emitter.Internal
 
