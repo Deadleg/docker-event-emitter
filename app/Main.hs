@@ -42,4 +42,4 @@ main = do
 
         getPublisher app = case listener app of
             Redis -> publishToRedis $ endpoint app
-            Web   -> publishToRest $ endpoint app
+            Web   -> publishToRest  $ endpoint app

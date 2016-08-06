@@ -7,10 +7,10 @@ module Docker.Event.Emitter.Internal (
     EventType(..),
     Event(..),
     Endpoint(..),
-    publishContainerStart,
     getResponseBody,
-    publishEvent,
-    unixSocketManager
+    mapEventType,
+    unixSocketManager,
+    addContainerToJSON
 ) where
 
 import Control.Applicative ((<*>), (<$>))
@@ -31,6 +31,7 @@ import qualified Data.Text as T
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
+import qualified Data.Conduit.List as CL
 import qualified Network.Socket.Internal as ST
 import qualified Text.ParserCombinators.ReadP as P
 import qualified Text.ParserCombinators.ReadPrec as RP
@@ -78,10 +79,7 @@ instance FromJSON Event where
                                  <*> o .: "status"
 
 unixSocketManager :: IO Manager
-unixSocketManager = newManager defaultManagerSettings
-        {
-            managerRawConnection = createUnixConnection
-        }
+unixSocketManager = newManager defaultManagerSettings { managerRawConnection = createUnixConnection }
 
 createUnixConnection :: IO (Maybe NS.HostAddress -> String -> Int -> IO Connection)
 createUnixConnection = return $ \_ _ _ -> openUnixConnection "/var/run/docker.sock"
@@ -104,23 +102,22 @@ socketConnection socket chunksize = makeConnection
     (NS.close socket)
 
 -- | Get the container json and add it to the event in the field "docker.event.emitter.container"
-publishContainerStart :: (S.ByteString -> Sink S.ByteString IO ()) -> S.ByteString -> Response () -> Sink S.ByteString IO ()
-publishContainerStart dispatch event _ = do
-    responseBody <- await
-    let inspectBody = fromMaybe "" responseBody
-    let json        = (C.init event) <> ", \"docker.event.emitter.container\":" <> inspectBody <> "}"
-    dispatch json
+addContainerToJSON :: S.ByteString -> S.ByteString -> S.ByteString
+addContainerToJSON event containerInfo = (C.init event) <> ", \"docker.event.emitter.container\":"
+                                                        <> containerInfo
+                                                        <> "}"
 
--- | Publish the event with the given publisher
-publishEvent :: (S.ByteString -> Sink S.ByteString IO ()) -> S.ByteString -> Sink S.ByteString IO ()
-publishEvent publisher event = do
-    liftIO $ print event
+-- | Add container information to a container start event, otherwise map the event as is.
+mapEventType :: Conduit S.ByteString IO S.ByteString
+mapEventType = CL.mapM (\event -> do
     let info = eitherDecode (B.fromStrict event) :: Either String Event
     case info of
         Right (Event Container id Start) -> do
-            request <- parseRequest $ "http://localhost/containers/" <> T.unpack id <> "/json"
+            request <- parseRequest ("http://localhost/containers/" ++ T.unpack id ++ "/json")
             manager <- liftIO $ unixSocketManager
             let request' = setRequestManager manager request
-            liftIO $ httpSink request' (publishContainerStart publisher event)
-        Right _                          -> publisher event
-        Left err                         -> publisher event -- Event is not fully defined so this should happen often
+            response <- httpLBS request'
+            return $ addContainerToJSON (B.toStrict $ getResponseBody response) event
+        Right _                          -> return event
+        Left _                           -> return event) -- Event is not fully defined so this should happen often
+
