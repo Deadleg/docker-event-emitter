@@ -10,7 +10,8 @@ module Docker.Event.Emitter.Internal (
     getResponseBody,
     mapEventType,
     unixSocketManager,
-    addContainerToJSON
+    addContainerToJSON,
+    parseRedisConnection
 ) where
 
 import Control.Applicative ((<*>), (<$>))
@@ -19,6 +20,7 @@ import Data.Aeson
 import Data.Conduit hiding (connect)
 import Data.Maybe
 import Data.Monoid ((<>))
+import Data.List.Split (splitOn)
 import Data.Text (Text, unpack, toTitle)
 import Prelude hiding (id)
 import Text.Read hiding (choice, String)
@@ -32,6 +34,7 @@ import qualified Data.ByteString as S
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Conduit.List as CL
+import qualified Database.Redis as R
 import qualified Network.Socket.Internal as ST
 import qualified Text.ParserCombinators.ReadP as P
 import qualified Text.ParserCombinators.ReadPrec as RP
@@ -107,7 +110,7 @@ addContainerToJSON event containerInfo = (C.init event) <> ", \"docker.event.emi
                                                         <> containerInfo
                                                         <> "}"
 
--- | Add container information to a container start event, otherwise map the event as is.
+-- | Add container information to a container start event, otherwise don't alter the event.
 mapEventType :: Conduit S.ByteString IO S.ByteString
 mapEventType = CL.mapM (\event -> do
     let info = eitherDecode (B.fromStrict event) :: Either String Event
@@ -121,3 +124,14 @@ mapEventType = CL.mapM (\event -> do
         Right _                          -> return event
         Left _                           -> return event) -- Event is not fully defined so this should happen often
 
+parseRedisConnection :: Endpoint -> R.ConnectInfo
+parseRedisConnection endpoint = R.defaultConnectInfo {R.connectHost = host, R.connectPort = port}
+    where
+        toPortNumber :: String -> ST.PortNumber
+        toPortNumber s = (fromInteger . read) s
+
+        split = splitOn ":" endpoint
+
+        (host, port) = case split of
+            [h, p] -> (h, R.PortNumber (toPortNumber p))
+            [h]    -> (h, R.PortNumber 6379)

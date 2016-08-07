@@ -2,7 +2,7 @@ module Main where
 
 import Docker.Event.Emitter
 
-import Data.Conduit (($$))
+import Data.Conduit (($$), (=$))
 import Network.HTTP.Client
 import Network.HTTP.Client.Conduit (bodyReaderSource)
 import Network.HTTP.Simple
@@ -21,7 +21,7 @@ appParser = App <$> (option auto
                       <> metavar "ENDPOINT"
                       <> help "Redis: hostname:port | web: full url"))
 
--- | Parses the options to extract the correct 'dispatcher', and then connects to the docker daemon.
+-- | Parses the options to extract the correct publisher (and initializes any connections), and then connects to the docker daemon.
 main :: IO ()
 main = do
     app <- execParser opts
@@ -31,7 +31,7 @@ main = do
     let request' = setRequestManager manager request
     withResponse request manager $ \response -> do
         let loop = do
-                bodyReaderSource (responseBody response) $$ newEvent publisher
+                bodyReaderSource (responseBody response) =$ mapEventType $$ publisher
                 loop
         loop
     where
@@ -41,5 +41,6 @@ main = do
           <> progDesc "Emit docker events to a subscriber such as Redis or a RESTful endpoint.")
 
         getPublisher app = case listener app of
-            Redis -> publishToRedis $ endpoint app
+            Redis -> publishToRedis $ createRedisConnection (endpoint app)
             Web   -> publishToRest  $ endpoint app
+
