@@ -37,6 +37,7 @@ tests = testGroup "Docker.Event.Emitter.Internal tests"
     , testCase "Redis connection port with no port" parseRedisPortWithNoPort
     , testCase "Redis connection host with port" parseRedisHostWithPort
     , testCase "Redis connection port with port" parseRedisPortWithPort
+    , testCase "Create container deserialize" decodeContainerStartEvent
     , testProperty "check adding container info is valid json" checkAddContainerToJSONIsJSON
     ]
 
@@ -57,6 +58,13 @@ parseRedisHostWithPort = connectHost (parseRedisConnection "somehost:5212") @?= 
 
 parseRedisPortWithPort :: Assertion
 parseRedisPortWithPort = connectPort (parseRedisConnection "localhost:5212") @?= PortNumber 5212
+
+decodeContainerStartEvent :: Assertion
+decodeContainerStartEvent = do
+     let json = "{\"Type\": \"Container\", \"status\": \"Create\", \"id\": \"asfsasfg\"}"
+     let Just (Event type_ _ status) = decode json :: Maybe Event
+     status @?= Create
+     type_ @?= Container
 
 instance Arbitrary S.ByteString where
     arbitrary = do
