@@ -26,14 +26,7 @@ main :: IO ()
 main = do
     app <- execParser opts
     let publisher = getPublisher app
-    manager <- unixSocketManager
-    request <- parseRequest "http://localhost/events"
-    let request' = setRequestManager manager request
-    withResponse request manager $ \response -> do
-        let loop = do
-                bodyReaderSource (responseBody response) =$ mapEventType $$ publisher
-                loop
-        loop
+    listenToEvents publisher
     where
         opts = info (helper <*> appParser)
            ( fullDesc
