@@ -12,16 +12,19 @@ import Data.Conduit
 import Data.Monoid ((<>))
 import Data.Text.Encoding (decodeUtf8)
 import Data.Word8 (Word8)
+
 import Numeric (showHex)
 import Test.HUnit
 import Test.Tasty
 import Test.Tasty.QuickCheck (testProperty)
 import Test.Tasty.HUnit (testCase)
 import Test.QuickCheck
+import Control.Concurrent
 import Control.Concurrent.MVar
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Writer
 import Control.Monad.Trans.Class (lift)
+import System.Process
 import Database.Redis (defaultConnectInfo, connectHost, connectPort, PortID(PortNumber))
 
 import qualified Data.HashMap.Strict as M
@@ -44,4 +47,9 @@ testSink var = CL.mapM_ $ \json -> do
 getContainerEvent :: Assertion
 getContainerEvent = do
     var <- newMVar []
-    listenToEvents (testSink var)
+    testThread <- forkIO (listenToEvents (testSink var))
+    callCommand "docker run -d --name=testngx nginx"
+    callCommand "docker rm -f testngx"
+    killThread testThread
+    result <- takeMVar var
+    print result
