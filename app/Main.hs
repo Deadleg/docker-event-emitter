@@ -1,12 +1,12 @@
 module Main where
 
-import Docker.Event.Emitter
+import           Docker.Event.Emitter
 
-import Data.Conduit (($$), (=$))
-import Network.HTTP.Client
-import Network.HTTP.Client.Conduit (bodyReaderSource)
-import Network.HTTP.Simple
-import Options.Applicative hiding (choice)
+import           Data.Conduit                (($$), (=$))
+import           Network.HTTP.Client
+import           Network.HTTP.Client.Conduit (bodyReaderSource)
+import           Network.HTTP.Simple
+import           Options.Applicative         hiding (choice)
 
 appParser :: Parser App
 appParser = App <$> (option auto

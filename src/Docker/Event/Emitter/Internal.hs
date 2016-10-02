@@ -14,32 +14,33 @@ module Docker.Event.Emitter.Internal (
     parseRedisConnection
 ) where
 
-import Control.Applicative ((<*>), (<$>))
-import Control.Monad.IO.Class (liftIO)
-import Data.Aeson
-import Data.Conduit hiding (connect)
-import Data.Maybe
-import Data.Monoid ((<>))
-import Data.List.Split (splitOn)
-import Data.Text (Text, unpack, toTitle)
-import Prelude hiding (id)
-import Text.Read hiding (choice, String)
-import Network.HTTP.Simple
-import Network.HTTP.Client
-import Network.HTTP.Client.Internal (Connection, openSocketConnection, makeConnection)
-import Network.Socket.ByteString (sendAll, recv)
+import           Control.Applicative             ((<$>), (<*>))
+import           Control.Monad.IO.Class          (liftIO)
+import           Data.Aeson
+import           Data.Conduit                    hiding (connect)
+import           Data.List.Split                 (splitOn)
+import           Data.Maybe
+import           Data.Monoid                     ((<>))
+import           Data.Text                       (Text, toTitle, unpack)
+import           Network.HTTP.Client
+import           Network.HTTP.Client.Internal    (Connection, makeConnection,
+                                                  openSocketConnection)
+import           Network.HTTP.Simple
+import           Network.Socket.ByteString       (recv, sendAll)
+import           Prelude                         hiding (id)
+import           Text.Read                       hiding (String, choice)
 
-import qualified Data.Text as T
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Lazy as B
-import qualified Data.Conduit.List as CL
-import qualified Database.Redis as R
-import qualified Network.Socket.Internal as ST
-import qualified Text.ParserCombinators.ReadP as P
+import qualified Control.Exception               as E
+import qualified Data.ByteString                 as S
+import qualified Data.ByteString.Char8           as C
+import qualified Data.ByteString.Lazy            as B
+import qualified Data.Conduit.List               as CL
+import qualified Data.Text                       as T
+import qualified Database.Redis                  as R
+import qualified Network.Socket                  as NS
+import qualified Network.Socket.Internal         as ST
+import qualified Text.ParserCombinators.ReadP    as P
 import qualified Text.ParserCombinators.ReadPrec as RP
-import qualified Control.Exception as E
-import qualified Network.Socket as NS
 
 type Endpoint = String
 
@@ -71,8 +72,8 @@ instance FromJSON EventType where
             type_ = fromMaybe UnknownType ((readMaybe . unpack . toTitle) s)
 
 data Event = Event
-    { type_ :: EventType
-    , id :: Text
+    { type_  :: EventType
+    , id     :: Text
     , status :: EventStatus
     } deriving (Eq, Show)
 

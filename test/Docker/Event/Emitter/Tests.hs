@@ -4,35 +4,36 @@ module Docker.Event.Emitter.Tests (
     tests
 ) where
 
-import Docker.Event.Emitter
+import           Docker.Event.Emitter
 
-import Data.Aeson
-import Data.Maybe
-import Data.Conduit
-import Data.Monoid ((<>))
-import Data.Text.Encoding (decodeUtf8)
-import Data.Word8 (Word8)
+import           Data.Aeson
+import           Data.Conduit
+import           Data.Maybe
+import           Data.Monoid               ((<>))
+import           Data.Text.Encoding        (decodeUtf8)
+import           Data.Word8                (Word8)
 
-import Numeric (showHex)
-import Test.HUnit
-import Test.Tasty
-import Test.Tasty.QuickCheck (testProperty)
-import Test.Tasty.HUnit (testCase)
-import Test.QuickCheck
-import Control.Concurrent
-import Control.Concurrent.MVar
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Writer
-import Control.Monad.Trans.Class (lift)
-import System.Process
-import Database.Redis (defaultConnectInfo, connectHost, connectPort, PortID(PortNumber))
+import           Control.Concurrent
+import           Control.Concurrent.MVar
+import           Control.Monad.IO.Class    (liftIO)
+import           Control.Monad.Trans.Class (lift)
+import           Control.Monad.Writer
+import           Database.Redis            (PortID (PortNumber), connectHost,
+                                            connectPort, defaultConnectInfo)
+import           Numeric                   (showHex)
+import           System.Process
+import           Test.HUnit
+import           Test.QuickCheck
+import           Test.Tasty
+import           Test.Tasty.HUnit          (testCase)
+import           Test.Tasty.QuickCheck     (testProperty)
 
-import qualified Data.HashMap.Strict as M
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Char8 as C
-import qualified Data.ByteString.Lazy as LB
-import qualified Data.Conduit.List as CL
-import qualified Test.QuickCheck.Monadic as QC
+import qualified Data.ByteString           as S
+import qualified Data.ByteString.Char8     as C
+import qualified Data.ByteString.Lazy      as LB
+import qualified Data.Conduit.List         as CL
+import qualified Data.HashMap.Strict       as M
+import qualified Test.QuickCheck.Monadic   as QC
 
 tests :: TestTree
 tests = testGroup "Docker.Event.Emitter tests"
