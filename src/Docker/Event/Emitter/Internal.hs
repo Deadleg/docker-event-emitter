@@ -112,7 +112,7 @@ addContainerToJSON event containerInfo = (C.init event) <> ", \"docker.event.emi
 
 -- | Add container information to a container start event, otherwise don't alter the event.
 mapEventType :: Conduit S.ByteString IO S.ByteString
-mapEventType = CL.mapM (\event -> do
+mapEventType = CL.mapM $ \event -> do
     let info = eitherDecode (B.fromStrict event) :: Either String Event
     case info of
         Right (Event Container id Start) -> do
@@ -122,7 +122,7 @@ mapEventType = CL.mapM (\event -> do
             response <- httpLBS request'
             return $ addContainerToJSON (B.toStrict $ getResponseBody response) event
         Right _                          -> return event
-        Left _                           -> return event) -- Event is not fully defined so this should happen often
+        Left _                           -> return event -- Event is not fully defined so this should happen often
 
 parseRedisConnection :: Endpoint -> R.ConnectInfo
 parseRedisConnection endpoint = R.defaultConnectInfo {R.connectHost = host, R.connectPort = port}
