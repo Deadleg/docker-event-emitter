@@ -91,7 +91,7 @@ createUnixConnection = return $ \_ _ _ -> openUnixConnection "/var/run/docker.so
 openUnixConnection :: String -> IO Connection
 openUnixConnection addr = E.bracketOnError
     (NS.socket NS.AF_UNIX NS.Stream NS.defaultProtocol)
-    (NS.close)
+    NS.close
     $ \sock -> do
         NS.connect sock sockAddr
         socketConnection sock chunksize
@@ -107,7 +107,7 @@ socketConnection socket chunksize = makeConnection
 
 -- | Get the container json and add it to the event in the field "docker.event.emitter.container"
 addContainerToJSON :: S.ByteString -> S.ByteString -> S.ByteString
-addContainerToJSON event containerInfo = (C.init event) <> ", \"docker.event.emitter.container\":"
+addContainerToJSON event containerInfo = C.init event <> ", \"docker.event.emitter.container\":"
                                                         <> containerInfo
                                                         <> "}"
 
@@ -118,7 +118,7 @@ mapEventType = CL.mapM $ \event -> do
     case info of
         Right (Event Container id Start) -> do
             request <- parseRequest ("http://localhost/containers/" ++ T.unpack id ++ "/json")
-            manager <- liftIO $ unixSocketManager
+            manager <- liftIO unixSocketManager
             let request' = setRequestManager manager request
             response <- httpLBS request'
             return $ addContainerToJSON (B.toStrict $ getResponseBody response) event
@@ -129,7 +129,7 @@ parseRedisConnection :: Endpoint -> R.ConnectInfo
 parseRedisConnection endpoint = R.defaultConnectInfo {R.connectHost = host, R.connectPort = port}
     where
         toPortNumber :: String -> ST.PortNumber
-        toPortNumber s = (fromInteger . read) s
+        toPortNumber = fromInteger . read
 
         split = splitOn ":" endpoint
 

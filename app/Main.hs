@@ -9,17 +9,17 @@ import           Network.HTTP.Simple
 import           Options.Applicative         hiding (choice)
 
 appParser :: Parser App
-appParser = App <$> (option auto
+appParser = App <$> option auto
                        ( long "backend"
                       <> short 'b'
                       <> metavar "BACKEND"
                       <> help "Backend type: redis | web"
-                      <> completeWith ["redis", "web"]))
-                <*> (strOption
+                      <> completeWith ["redis", "web"])
+                <*> strOption
                        ( long "endpoint"
                       <> short 'e'
                       <> metavar "ENDPOINT"
-                      <> help "Redis: hostname:port | web: full url"))
+                      <> help "Redis: hostname:port | web: full url")
 
 -- | Parses the options to extract the correct publisher (and initializes any connections), and then connects to the docker daemon.
 main :: IO ()
