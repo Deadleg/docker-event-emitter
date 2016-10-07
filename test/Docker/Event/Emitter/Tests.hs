@@ -5,9 +5,11 @@ module Docker.Event.Emitter.Tests (
 ) where
 
 import           Docker.Event.Emitter
+import           Docker.Event.Emitter.Internal
 
 import           Data.Aeson
 import           Data.Conduit
+import           Data.Either (rights)
 import           Data.Maybe
 import           Data.Monoid               ((<>))
 import           Data.Text.Encoding        (decodeUtf8)
@@ -50,7 +52,14 @@ getContainerEvent = do
     var <- newMVar []
     testThread <- forkIO (listenToEvents (testSink var))
     callCommand "docker run -d --name=testngx nginx"
-    callCommand "docker rm -f testngx"
+    callCommand "docker rm -vf testngx"
     killThread testThread
-    result <- takeMVar var
-    print result
+    results <- takeMVar var
+    let maybeEvents = map (\r -> eitherDecode (LB.fromStrict r) :: Either String Event) results
+    length (rights maybeEvents) @?= 4 -- create, kill, network die, destroy
+    let events = rights maybeEvents
+    let createEvents = filter (\e -> type_ e == Container && status e == Create) events
+    length createEvents @?= 1
+    let modifiedEvents = filter ("docker.event.emitter" `S.isInfixOf`) results
+    length modifiedEvents @?= 1
+
