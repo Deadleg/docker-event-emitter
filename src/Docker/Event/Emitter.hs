@@ -11,17 +11,17 @@ module Docker.Event.Emitter (
     listenToEvents
 ) where
 
-import Data.Conduit hiding (connect)
-import Data.ByteString.Lazy (fromStrict)
-import Control.Monad (mapM_, forM_)
-import Control.Monad.IO.Class (liftIO)
-import Database.Redis hiding (info, get, String)
-import Network.HTTP.Simple
-import Network.HTTP.Client
-import Network.HTTP.Client.Conduit (bodyReaderSource)
+import           Control.Monad                 (forM_, mapM_)
+import           Control.Monad.IO.Class        (liftIO)
+import           Data.ByteString.Lazy          (fromStrict)
+import           Data.Conduit                  hiding (connect)
+import           Database.Redis                hiding (String, get, info)
+import           Network.HTTP.Client
+import           Network.HTTP.Client.Conduit   (bodyReaderSource)
+import           Network.HTTP.Simple
 
-import qualified Data.ByteString as S
-import qualified Data.Conduit.List as CL
+import qualified Data.ByteString               as S
+import qualified Data.Conduit.List             as CL
 import qualified Docker.Event.Emitter.Internal as I
 
 publishToRedis :: IO Connection -> Sink S.ByteString IO ()

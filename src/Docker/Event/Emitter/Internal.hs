@@ -106,8 +106,9 @@ socketConnection socket chunksize = makeConnection
     (NS.close socket)
 
 -- | Get the container json and add it to the event in the field "docker.event.emitter.container"
+-- | Double init on the event since the last two characters are "}\n"
 addContainerToJSON :: S.ByteString -> S.ByteString -> S.ByteString
-addContainerToJSON event containerInfo = C.init event <> ", \"docker.event.emitter.container\":"
+addContainerToJSON event containerInfo = C.init (C.init event) <> ", \"docker.event.emitter.container\":"
                                                         <> containerInfo
                                                         <> "}"
 

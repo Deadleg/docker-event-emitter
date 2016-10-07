@@ -77,5 +77,5 @@ checkAddContainerToJSONIsJSON :: S.ByteString -> Property
 checkAddContainerToJSONIsJSON info = M.lookup "docker.event.emitter.container" ast
                                      ===
                                      Just (Object (M.fromList [("data", String $ decodeUtf8 info)]))
-    where Just (Object ast) = decode . LB.fromStrict $ addContainerToJSON "{\"a\": 1}" ("{ \"data\": \"" <> info <> "\"}") :: Maybe Value
+    where Just (Object ast) = decode . LB.fromStrict $ addContainerToJSON "{\"a\": 1}\n" ("{ \"data\": \"" <> info <> "\"}") :: Maybe Value
 
