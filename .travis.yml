@@ -1,4 +1,4 @@
-sudo: true
+sudo: required
 services:
 - docker
 language: c
@@ -8,14 +8,19 @@ cache:
 before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
-- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards
-  --strip-components=1 -C ~/.local/bin '*/stack'
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 install:
 - stack --no-terminal --install-ghc test --only-dependencies
 script:
 - stack --no-terminal test --haddock --no-haddock-deps
 - stack install --local-bin-dir .
-
+after_success:
+- if [ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_BRANCH" == "master" && -z "$TRAVIS_TAG" ]; then
+  docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+  docker build -t deadleg/docker-event-emitter:$TRAVIS_TAG;
+  docker build -t deadleg/docker-event-emitter:latest;
+  docker push deadleg/docker-event-emitter:$TRAVIS_TAG;
+  docker push deadleg/docker-event-emitter:latest; fi
 deploy:
   provider: releases
   api_key:
@@ -24,3 +29,8 @@ deploy:
   skip_cleanup: true
   on:
     tags: true
+env:
+  global:
+  - secure: cAKuhdrQtuzexnznU9Cy3E5lFol2uU8A68jamTT2rkkUO9oTTEX3xl6dmezkxSajuWEJb+tJPPwb+FWqjFILiuVAnRQA06m83YdemzK1PCezUjpU399rG43gcoQWCn++S/24B7FgFqDPyYnwB+Vd7eLQxRdwJk6l6kwhe+L921dab1QvQBeRQq9fP5lIkRP6MfOdkGTDZgOj7deEpxsiW4TgJ04W0CJVWYVgejeOPIcVCZgVMAEVBo9z2C302Wf6FdYNA7tyjN0H8yUR8bDmpaDYkTS+ILt0t/4pd8d3IN/AxyIGxkN7jHf7MtMOSmXNJUvz/jnWIHpHcQq/NI6SenlHyMZQCwFI00RQ7cRKO8c5491vcK2W3djQ+l5iRInoao6Rg1gbz/QFmHBQ5plg8XDYqzR2ElGUNtC3BJ+POXViPDyMw8+lEiITk8D+02vUILRmhnFPp0Wr+ZqowraRP5rmyFDic4TOia+fUsSEMIWXumtBXR980gy7PC522vhkZqH8beXOZKozYEUhUf5HTEMeXpGgor79V8eveGcIpnRjGCiVp8og6HNxErh8mL5WhtbrFomP8UEyc/F5lhtE2CPIoHND+xcaKQ30WOXZ2Qkh+PGdIq4LeMYP9C025djRwMOBoyRcaXvsaa9uoGocBQJUWCsOIbup440duoGM7KA=
+  - secure: sTLvAYsEVZYBdLTnzDM2H4f83ZgGUfrsEsRB/mGuZGuo1rZtRPWp0GTJAJVLfulk1sfkixpML1wDOZ63iH3385vGfyacXu/dNVUNiOl4IteBnRonimKff2I+trGGz3+r70fdo6IReqrQF/WuuxELLCSsCbQd0WGOREs3JAjmTPf/wb5309PVneVsnZkd8QIt5Tdsli+lSnQ6Dm2nyv+vNOdCtBH7CAkLRf5FghBwmT/h/2oUx+HsvLCfp/5A1qaAbzfb/NZAa/9RfYo+X9NH75KLduu5nu8t1YrgyPdRrHzjEnPMBpSuj+n3iVEK77j8aczegejw+EddHqzxlBqf4I74T+SgLg5y/lL2jA7E1x1rireKTXZwHkbNsb7zgOLCtP8BfTgiYA2JLBfjIVv4Tt7zLIcQCkmIEcO39tV8MLJGfqoUN99/C48AV267t39THl8BngsJ5B7k1KiGJgaTS2Lx4I09AXqMfpsaU+gJiYVWIHlDaMCPFpzFkgkGKRKEEdlOB7sFUr2oRPyIU8r+22OnqFV9j79YERkERUV98Cwo/jZ0wskxJ4FjdVpS/WqOflzPNMNb1TgJrOj4/dV5iiVYJOCzCku0G3Ner/vxABI4HIdEsYdYD+pj66jT6LbHxjp65Y1OuDS1DMASSSRlLocp3CQQpEIIT9uFQ6zkHqw=
+  - secure: nAF4NCj3fKxFiA0nrr0eVR1/M6nvT65AuV2LHMcw4kgR4OjpK4dWPdm6X3FEwxF9O409GIM4BuTLRpMxrYQI477XUhB2i4vI7FSAOC0QefoNN5c4tAJLBOPz99LN/9HXlrHSPn+OKxPxjAhWGaoc4+XEW9NzP2uxOnsrqoVuyq1a5lw7ev7Wm5/rcnMmcmTGV+yas7e554yX/NUke+2hBer7MpTvWnv+zNujanaLgG3iXHA+4rEONGkLMqJkLJluiXmUCLSbsNoAL27CYqVPAyaX+2JRZUhjayE0Y2pr0kaFDP0i2V5ybelOlqzpGuAQzlK1btaily2y6GO501JRLGZmUYrCCsTJPRw1ketdvMsVh9iVeKqUptudJh99PYxb5y9o9W/7eO0TK8GmYttiRIasYVa89WlhbKFJiYhIM6mjbfjM3U/My1hBPVdwLNGkuXnJIs3c+yFcD/olntIOEaExURXpYqDfTE0G0Z4qaxQ+ldEOflbScSudxUirFFpl5UUzGaeYTE/zLgGU80FL2MIh9ZAJBpGtOsYKixgR6oIgUiTBbDmn7sgIErESnEZCMSddbYl78bjVdekFGYpv7Ht7Im5tON12EqAfXOLR8hCvQMnD6Z8UgUoRfQwCVmBo0OGMUXf8D5E9A/bEyH2X/SsOdNXqX1xKszbq67PiVHI=
