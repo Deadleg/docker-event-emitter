@@ -37,7 +37,7 @@ For every event, the JSON is POSTed to the supplied endpoint.
 To create a Docker image, just run
 
 ```
-docker built -t {your tag}  .
+docker build -t {your tag}  .
 ```
 
 Then run with 
