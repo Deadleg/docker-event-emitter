@@ -59,7 +59,6 @@ getContainerEvent = do
     killThread testThread
     results <- takeMVar var
     let maybeEvents = map (\r -> eitherDecode (LB.fromStrict r) :: Either String Event) results
-    length (rights maybeEvents) @?= 4 -- create, kill, network die, destroy
     let maybeParseErrors = filter (("endOfInput" :: String) `L.isInfixOf`) (lefts maybeEvents)
     length maybeParseErrors @?= 0
     let events = rights maybeEvents
