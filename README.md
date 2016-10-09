@@ -1,4 +1,6 @@
-# Docker Event Emitter
+# Docker Event Emitter 
+
+[![Build Status](https://travis-ci.org/Deadleg/docker-event-emitter.svg?branch=master)](https://travis-ci.org/Deadleg/docker-event-emitter)
 
 Subscribe to the `/events` Docker api and forward events to Redis or a RESTful endpoint.
 
@@ -23,6 +25,12 @@ Available options:
 Note that there are no defaults, you must specify what backend you want to use and the endpoint for it.
 
 Currently only redis and web endpoints are supported.
+
+Can also be run with Docker
+
+```
+docker run -v /var/run/docker.sock:/var/run/docker.sock --name dee deadleg/docker-event-emitter -b redis -e redis:6379
+```
 
 ## Redis
 
