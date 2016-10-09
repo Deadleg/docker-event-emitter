@@ -1,5 +1,5 @@
 name:                docker-event-emitter
-version:             0.0.0.5
+version:             0.0.0.6
 synopsis:            Initial project template from stack
 description:         Please see README.md
 homepage:            https://github.com/Deadleg/docker-event-emitter#README.md
