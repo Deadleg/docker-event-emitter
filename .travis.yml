@@ -16,9 +16,9 @@ script:
 - stack install --local-bin-path .
 after_success:
 - if [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ -n "$TRAVIS_TAG" ]; then
-  docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
-  docker build -t deadleg/docker-event-emitter:$TRAVIS_TAG;
-  docker build -t deadleg/docker-event-emitter:latest;
+  docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+  docker build -t deadleg/docker-event-emitter:$TRAVIS_TAG .;
+  docker build -t deadleg/docker-event-emitter:latest .;
   docker push deadleg/docker-event-emitter:$TRAVIS_TAG;
   docker push deadleg/docker-event-emitter:latest; fi
 deploy:
